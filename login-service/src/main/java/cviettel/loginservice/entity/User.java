@@ -14,7 +14,7 @@ import java.time.Instant;
 public class User {
     @Id
     @Column(name = "user_id", nullable = false)
-    @GeneratedValue(strategy = GenerationType.UUID)
+//    @GeneratedValue(strategy = GenerationType.UUID)
     private String userId;
 
     @Column(name = "is_verified", length = 255)
@@ -47,6 +47,16 @@ public class User {
 
     @Column(name = "updated-at", updatable = false)
     private Instant updatedAt;
+
+    public User() {
+    }
+
+    public User(String userId, String password, Instant updatedAt, String updatedBy) {
+        this.userId = userId;
+        this.password = password;
+        this.updatedAt = updatedAt;
+        this.updatedBy = updatedBy;
+    }
 
     public String getUserId() {
         return userId;
