@@ -3,6 +3,7 @@ package cviettel.orderservice.controller;
 import cviettel.orderservice.entity.Order;
 import cviettel.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +31,7 @@ public class OrderController {
 
     // Cập nhật đơn hàng
     @PutMapping("/{id}")
-    public ResponseEntity<Order> updateOrder(@PathVariable String id, @RequestBody Order order) {
+    public ResponseEntity<Order> updateOrder(@PathVariable String id, @RequestBody Order order) throws BadRequestException {
         Order updatedOrder = orderService.updateOrder(id, order);
         return ResponseEntity.ok(updatedOrder);
     }

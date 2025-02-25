@@ -22,11 +22,28 @@ public class UserSession {
     @Column(name = "user_id")
     private String userId;
 
-    @Column(name = "token")
+    @Column(name = "token", length = 2500)
     private String token;
+
+    @Column(name = "refresh_token", length = 1000)
+    private String refreshToken;
 
     @Column(name = "created_at")
     private Instant createdAt;
+
+    @Column(name = "refresh_count")
+    private int refreshCount;
+
+    public UserSession() {
+    }
+
+    public UserSession(String userId, String token, String refreshToken, Instant createdAt, int refreshCount) {
+        this.userId = userId;
+        this.token = token;
+        this.refreshToken = refreshToken;
+        this.createdAt = createdAt;
+        this.refreshCount = refreshCount;
+    }
 
     public String getUserSessionId() {
         return userSessionId;
@@ -52,11 +69,27 @@ public class UserSession {
         this.token = token;
     }
 
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public int getRefreshCount() {
+        return refreshCount;
+    }
+
+    public void setRefreshCount(int refreshCount) {
+        this.refreshCount = refreshCount;
     }
 }

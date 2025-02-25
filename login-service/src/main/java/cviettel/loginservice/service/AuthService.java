@@ -6,4 +6,5 @@ import cviettel.loginservice.dto.response.common.ObjectResponse;
 
 public interface AuthService {
     public ObjectResponse<LoginResponse> login(LoginRequest loginRequest);
+    public ObjectResponse<LoginResponse> refreshToken(String refreshToken);
 }
