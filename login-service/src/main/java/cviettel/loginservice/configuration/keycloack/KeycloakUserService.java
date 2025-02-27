@@ -4,19 +4,20 @@ import cviettel.loginservice.configuration.keycloack.exception.CustomKeycloakExc
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cviettel.loginservice.configuration.message.LabelKey;
+import cviettel.loginservice.configuration.message.Labels;
 import cviettel.loginservice.dto.response.LoginResponse;
 import cviettel.loginservice.dto.response.common.ObjectResponse;
 import cviettel.loginservice.entity.User;
-import cviettel.loginservice.entity.UserSession;
+import cviettel.loginservice.enums.MessageCode;
+import cviettel.loginservice.exception.handler.InternalServerErrorException;
 import cviettel.loginservice.repository.UserRepository;
-import cviettel.loginservice.repository.UserSessionRepository;
-import cviettel.loginservice.service.UserService;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
@@ -42,111 +43,111 @@ public class KeycloakUserService {
 
     private final PasswordEncoder encoder;
 
-    private final UserService userService;
-
-//    private final TokenManager tokenManager;
-
     private final UserRepository userRepository;
 
-    private final UserSessionRepository userSessionRepository;
-
-    // Số lần refresh tối đa cho phép
-    private static final int MAX_REFRESH_COUNT = 3;
-
-    public KeycloakUserService(UserService userService, UserRepository userRepository, PasswordEncoder encoder,  UserSessionRepository userSessionRepository) {
-        this.userService = userService;
+    public KeycloakUserService(UserRepository userRepository, PasswordEncoder encoder) {
         this.userRepository = userRepository;
         this.encoder = encoder;
-//        this.tokenManager = tokenManager;
-        this.userSessionRepository = userSessionRepository;
     }
 
-    // Phương thức đăng nhập: sau khi lấy token thành công, cập nhật phiên đăng nhập của user
     @Transactional
     public LoginResponse getToken(String username, String password) {
+        // Bước 1: Lấy userId của user từ Keycloak
+        String userId = findUserIdByUsername(username);
+        if (userId != null) {
+            // Bước 2: Kiểm tra xem user đã có phiên đăng nhập chưa
+            if (hasActiveSession(userId)) {
+                // Nếu có phiên cũ, gọi API để logout tất cả phiên trước đó
+                logoutUserSessions(userId);
+            }
+        } else {
+            throw new InternalServerErrorException(MessageCode.MSG1000);
+        }
+
+        // Bước 3: Gọi API token của Keycloak với grant_type=password
         String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
         String requestBody = String.format("client_id=%s&username=%s&password=%s&grant_type=password", clientId, username, password);
         ResponseEntity<String> response = sendPostRequest(url, requestBody);
         System.out.println("Response at getToken(): " + response);
-        LoginResponse loginResponse = parseTokenResponse(response.getBody());
-
-        // Cập nhật session: chỉ cho phép một phiên cho mỗi user
-        Optional<User> userOptional = userRepository.findByEmail(username);
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            // Kiểm tra xem user có session cũ không
-            Optional<UserSession> oldSession = userSessionRepository.findByUserId(user.getUserId());
-            if (oldSession.isPresent()) {
-                // Thu hồi token cũ trước khi xóa session
-                String oldRefreshToken = oldSession.get().getRefreshToken();
-                if (oldRefreshToken != null) {
-                    revokeToken(oldRefreshToken);
-                }
-                userSessionRepository.deleteByUserId(user.getUserId());
-            }
-
-            // Lưu session mới với access và refresh token, khởi tạo số lần refresh = 0
-            UserSession session = new UserSession(user.getUserId(), loginResponse.getAccessToken(), loginResponse.getRefreshToken(), Instant.now(), 0);
-            userSessionRepository.save(session);
-        } else {
-            System.out.println("User with email " + username + " not found in local repository.");
-        }
-
-        return loginResponse;
-    }
-
-    // Phương thức làm mới token: cập nhật lại phiên đăng nhập với token mới và đếm số lần refresh
-    @Transactional
-    public LoginResponse refreshToken(String refreshToken) {
-        String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
-        String requestBody = String.format("client_id=%s&refresh_token=%s&grant_type=refresh_token", clientId, refreshToken);
-        ResponseEntity<String> response = sendPostRequest(url, requestBody);
 
         if (response.getStatusCode() == HttpStatus.OK) {
             LoginResponse loginResponse = parseTokenResponse(response.getBody());
-
-            // Tìm session dựa trên refresh token hiện tại
-            Optional<UserSession> sessionOpt = userSessionRepository.findByRefreshToken(refreshToken);
-            if (sessionOpt.isPresent()) {
-                UserSession session = sessionOpt.get();
-                int currentCount = session.getRefreshCount();
-                if (currentCount >= MAX_REFRESH_COUNT) {
-                    // Nếu vượt quá giới hạn, thu hồi token và xóa session, buộc đăng nhập lại
-                    revokeToken(refreshToken);
-                    userSessionRepository.delete(session);
-                    throw new CustomKeycloakException("Số lần làm mới token đã vượt quá giới hạn. Vui lòng đăng nhập lại.");
-                } else {
-                    // Tăng số lần refresh, cập nhật access token và refresh token mới
-                    session.setRefreshCount(currentCount + 1);
-                    session.setToken(loginResponse.getAccessToken());
-                    session.setRefreshToken(loginResponse.getRefreshToken());
-                    session.setCreatedAt(Instant.now());
-                    userSessionRepository.save(session);
-                }
-            } else {
-                System.out.println("Không tìm thấy session cho refresh token: " + refreshToken);
-            }
             return loginResponse;
         } else {
-            throw new CustomKeycloakException("Error refreshing token: " + response.getStatusCode() + " " + response.getBody());
+            throw new CustomKeycloakException(Labels.getLabels(MessageCode.MSG1010.getKey()) + response.getStatusCode() + " " + response.getBody(), MessageCode.MSG1010.name(), MessageCode.MSG1010.getKey());
         }
-
     }
 
-    public ObjectResponse<String> registerUser(User userInfo) {
 
-        String username = userInfo.getEmail();  // dùng email làm username (có thể điều chỉnh)
-        String password = userInfo.getPassword();
-        String email = userInfo.getEmail();  // email
+    @Transactional
+    public LoginResponse refreshToken(String refreshToken) {
+        // 1) Check if the refresh token is still active via Keycloak introspect
+        if (!isTokenActive(refreshToken)) {
+            throw new CustomKeycloakException(MessageCode.MSG1011);
+        }
 
-        System.out.println("Registering " + username + " with email " + email + " and password " + password);
+        // 2) If active, call the Keycloak token endpoint with grant_type=refresh_token
+        String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+        String requestBody = String.format(
+                "client_id=%s&refresh_token=%s&grant_type=refresh_token",
+                clientId,
+                refreshToken
+        );
+        ResponseEntity<String> response = sendPostRequest(url, requestBody);
+
+        if (response.getStatusCode() == HttpStatus.OK) {
+            // 3) Parse response and build LoginResponse
+            LoginResponse loginResponse = parseTokenResponse(response.getBody());
+            // At this point, the old refresh token is invalidated if “Refresh Token Max Reuse = 0”.
+            return loginResponse;
+        } else {
+            throw new CustomKeycloakException(
+                    Labels.getLabels(MessageCode.MSG1003.getKey()) + response.getStatusCode() + " " + response.getBody(),
+                    MessageCode.MSG1003.name(),
+                    MessageCode.MSG1003.getKey()
+            );
+        }
+    }
+
+    private boolean isTokenActive(String token) {
+        String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token/introspect";
+
+        // Nếu client là confidential, cần gửi cả client_id và client_secret
+        String requestBody = String.format(
+                "client_id=%s&client_secret=%s&token=%s",
+                "keycloak-spring-task",
+                "vU3t9HPvIAkEbtAFttzendISRe9zPwPv",  // lưu clientSecret trong cấu hình của bạn
+                token
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<String> response = new RestTemplate().exchange(url, HttpMethod.POST, entity, String.class);
+
+        if (response.getStatusCode() == HttpStatus.OK) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonNode = objectMapper.readTree(response.getBody());
+                return jsonNode.path("active").asBoolean();
+            } catch (Exception e) {
+                throw new CustomKeycloakException(MessageCode.MSG1012);
+            }
+        }
+        return false;
+    }
+
+
+    public ObjectResponse<String, Instant> registerUser(User userInfo) {
+        System.out.println("Registering " + userInfo.getEmail() + " with email " + userInfo.getEmail() + " and password " + userInfo.getPassword());
         String accessToken = getAdminAccessToken();
         if (accessToken == null) {
-            return new ObjectResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to get access token", Instant.now());
+            throw new InternalServerErrorException(MessageCode.MSG1013);
         }
         System.out.println("Access token: " + accessToken);
         String url = keycloakServerUrl + "/admin/realms/" + realm + "/users";
-        String userJson = String.format("{\"username\": \"%s\",\"enabled\": true,\"email\": \"%s\",\"firstName\": \"%s\",\"lastName\": \"\",\"credentials\": [{\"type\": \"password\", \"value\": \"%s\", \"temporary\": false}]}", username, email, userInfo.getName(), password);
+        String userJson = String.format("{\"username\": \"%s\",\"enabled\": true,\"email\": \"%s\",\"firstName\": \"%s\",\"lastName\": \"\",\"credentials\": [{\"type\": \"password\", \"value\": \"%s\", \"temporary\": false}]}", username, userInfo.getEmail(), userInfo.getName(), password);
         ResponseEntity<String> response = sendPostRequestWithAuth(url, userJson, accessToken);
         String userId = response.getHeaders().getLocation().toString();
         userId = userId.substring(userId.lastIndexOf("/") + 1);
@@ -155,9 +156,9 @@ public class KeycloakUserService {
         System.out.println(userInfo.getPassword());
         if (response.getStatusCode() == HttpStatus.CREATED) {
             userRepository.save(userInfo);
-            return new ObjectResponse<>(HttpStatus.CREATED.value(), "User created successfully", Instant.now());
+            return new ObjectResponse<>(HttpStatus.OK.toString(), "User created successfully", Instant.now());
         } else {
-            return new ObjectResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create user: " + response.getBody(), Instant.now());
+            return new ObjectResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value()+"", "Failed to create user: " + response.getBody(), Instant.now());
         }
     }
 
@@ -181,7 +182,7 @@ public class KeycloakUserService {
         String url = keycloakServerUrl + "/admin/realms/" + realm + "/users?username=" + username;
         String accessToken = getAdminAccessToken();
         if (accessToken == null) {
-            throw new CustomKeycloakException("Failed to get admin access token");
+            throw new CustomKeycloakException(MessageCode.MSG1012);
         }
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + accessToken);
@@ -191,37 +192,15 @@ public class KeycloakUserService {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(response.getBody());
             System.out.println("jsonNode: " + jsonNode);
-            if (jsonNode.isArray() && jsonNode.size() > 0) {
+            if (jsonNode.isArray() && !jsonNode.isEmpty()) {
                 return jsonNode.get(0).path("id").asText();
             } else {
-                throw new CustomKeycloakException("User not found in Keycloak");
+                throw new CustomKeycloakException(MessageCode.MSG1014);
             }
         } catch (JsonProcessingException e) {
-            throw new CustomKeycloakException("Error parsing Keycloak response", e);
+            throw new CustomKeycloakException(MessageCode.MSG1015);
         }
     }
-
-//    // Thay đổi mật khẩu của người dùng
-//    public String changeUserPassword(String username, String newPassword) {
-//        String userId = findUserIdByUsername(username);
-//        Optional<User> userFind = userRepository.findByEmail(username);
-//        if (userFind.isEmpty()) {
-//            return "User not found";
-//        }
-//        User user = userFind.get();
-//        // Sử dụng token hợp lệ từ TokenManager
-//        String accessToken = tokenManager.getValidAccessToken();
-//        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId + "/reset-password";
-//        String requestBody = String.format("{\"type\": \"password\", \"value\": \"%s\", \"temporary\": false}", newPassword);
-//        ResponseEntity<String> response = sendPutRequestWithAuth(url, requestBody, accessToken);
-//        user.setPassword(encoder.encode(newPassword));
-//        if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
-//            userRepository.save(user);
-//            return "Password changed successfully";
-//        } else {
-//            return "Failed to change password: " + response.getBody();
-//        }
-//    }
 
     // Thay đổi mật khẩu của người dùng
     public String changeUserPassword(String username, String newPassword) {
@@ -304,35 +283,55 @@ public class KeycloakUserService {
         return new RestTemplate().exchange(url, HttpMethod.DELETE, entity, String.class);
     }
 
-    public LoginResponse getTokenFromAdmin() {
-        String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
-        String requestBody = String.format("client_id=%s&username=%s&password=%s&grant_type=password", clientId, username, password);
-        ResponseEntity<String> response = sendPostRequest(url, requestBody);
-        if(response.getStatusCode() == HttpStatus.OK){
-            return parseTokenResponse(response.getBody());
-        } else {
-            throw new CustomKeycloakException("Failed to get admin token: " + response.getBody());
+    // Kiểm tra xem user (theo userId) có phiên đăng nhập nào đang hoạt động không
+    private boolean hasActiveSession(String userId) {
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId + "/sessions";
+        String accessToken = getAdminAccessToken();
+        if (accessToken == null) {
+            throw new CustomKeycloakException(MessageCode.MSG1013);
         }
-    }
-
-    public void revokeToken(String refreshToken) {
-        String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
-        String requestBody = String.format("client_id=%s&refresh_token=%s", clientId, refreshToken);
-
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-
-        ResponseEntity<String> response = new RestTemplate().exchange(url, HttpMethod.POST, entity, String.class);
-
-        if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
-            System.out.println("Failed to revoke token: " + response.getBody());
-        } else {
-            System.out.println("Successfully revoked token.");
+        headers.set("Authorization", "Bearer " + accessToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = new RestTemplate().exchange(url, HttpMethod.GET, entity, String.class);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(response.getBody());
+            // Nếu mảng kết quả không rỗng thì có phiên đăng nhập đang hoạt động
+            return node.isArray() && node.size() > 0;
+        } catch (Exception e) {
+            throw new CustomKeycloakException(MessageCode.MSG1016);
         }
     }
 
+    // Logout tất cả phiên đăng nhập của user (theo userId)
+    @Transactional
+    protected void logoutUserSessions(String userId) {
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId + "/logout";
+        String accessToken = getAdminAccessToken();
+        if (accessToken == null) {
+            throw new CustomKeycloakException(MessageCode.MSG1013);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + accessToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = new RestTemplate().exchange(url, HttpMethod.POST, entity, String.class);
+            if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
+                System.out.println("Failed to logout user sessions: " + response.getBody());
+            } else {
+                System.out.println("Successfully logged out previous sessions for userId: " + userId);
+            }
+        } catch (HttpClientErrorException e) {
+            // Nếu nhận được 404, nghĩa là không có phiên nào, nên có thể bỏ qua lỗi này
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                System.out.println("No active sessions found for userId: " + userId + ". Nothing to logout.");
+            } else {
+                System.out.println("Error during logoutUserSessions: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+            }
+        }
+    }
 
     private LoginResponse parseTokenResponse(String responseBody) {
         try {
@@ -346,7 +345,7 @@ public class KeycloakUserService {
             System.out.println("accessToken: " + accessToken);
             return new LoginResponse(accessToken, refreshToken, tokenType, expiresIn);
         } catch (JsonProcessingException e) {
-            throw new CustomKeycloakException("Error parsing the Keycloak response", e);
+            throw new CustomKeycloakException(MessageCode.MSG1015);
         }
     }
 }

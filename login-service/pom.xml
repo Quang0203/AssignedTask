@@ -31,6 +31,8 @@
         <jjwt.jackson.version>0.11.5</jjwt.jackson.version>
         <jjwt.api.version>0.11.5</jjwt.api.version>
         <jjwt.impl.version>0.11.5</jjwt.impl.version>
+        <problem.version>0.27.1</problem.version>
+        <problem.spring.web.version>0.25.2</problem.spring.web.version>
         <redission.version>3.27.2</redission.version>
         <spring.data.redis.version>3.2.4</spring.data.redis.version>
     </properties>
@@ -46,6 +48,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.zalando</groupId>
+            <artifactId>problem</artifactId>
+            <version>${problem.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.zalando</groupId>
+            <artifactId>problem-spring-web</artifactId>
+            <version>${problem.spring.web.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.kafka</groupId>

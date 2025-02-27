@@ -3,7 +3,6 @@ package cviettel.loginservice.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
@@ -33,9 +32,6 @@ public class UserSession {
 
     @Column(name = "refresh_count")
     private int refreshCount;
-
-    public UserSession() {
-    }
 
     public UserSession(String userId, String token, String refreshToken, Instant createdAt, int refreshCount) {
         this.userId = userId;

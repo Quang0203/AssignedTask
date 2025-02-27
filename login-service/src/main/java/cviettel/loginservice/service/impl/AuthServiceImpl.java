@@ -1,15 +1,20 @@
 package cviettel.loginservice.service.impl;
 
 import cviettel.loginservice.configuration.keycloack.KeycloakUserService;
+import cviettel.loginservice.configuration.message.Labels;
 import cviettel.loginservice.dto.request.LoginRequest;
 import cviettel.loginservice.dto.response.LoginResponse;
 import cviettel.loginservice.dto.response.common.ObjectResponse;
+import cviettel.loginservice.enums.MessageCode;
+import cviettel.loginservice.exception.handler.BadRequestAlertException;
+import cviettel.loginservice.exception.handler.InternalServerErrorException;
+import cviettel.loginservice.exception.handler.UnauthorizedException;
 import cviettel.loginservice.service.AuthService;
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 
 @Service
@@ -20,7 +25,7 @@ public class AuthServiceImpl implements AuthService {
     private KeycloakUserService keycloakUserService;
 
     @Override
-    public ObjectResponse<LoginResponse> login(LoginRequest loginRequest) {
+    public ObjectResponse<LoginResponse, Instant> login(LoginRequest loginRequest) {
         try {
             // Gọi KeycloakUserService để lấy token từ Keycloak
             LoginResponse tokenResponse = keycloakUserService.getToken(loginRequest.getEmail(), loginRequest.getPassword());
@@ -29,26 +34,26 @@ public class AuthServiceImpl implements AuthService {
 
             if (tokenResponse != null && tokenResponse.getAccessToken() != null) {
                 System.out.println("Token: " + tokenResponse.getAccessToken());
-                return new ObjectResponse<>(HttpStatus.OK.value(), "Login successful", Instant.now(), tokenResponse);
+                return new ObjectResponse<>(HttpStatus.OK.toString(), "Login successful", Instant.now(), tokenResponse);
             } else {
-                return new ObjectResponse<>(HttpStatus.BAD_REQUEST.value(), "Invalid credentials", Instant.now());
+                throw new BadRequestAlertException(MessageCode.MSG1004);
             }
         } catch (Exception ex) {
-            return new ObjectResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: " + ex.getMessage(), Instant.now());
+            throw new UnauthorizedException(MessageCode.MSG1005);
         }
     }
 
     @Override
-    public ObjectResponse<LoginResponse> refreshToken(String refreshToken) {
+    public ObjectResponse<LoginResponse, Instant> refreshToken(String refreshToken) {
         try {
             LoginResponse tokenResponse = keycloakUserService.refreshToken(refreshToken);
             if (tokenResponse != null && tokenResponse.getAccessToken() != null) {
-                return new ObjectResponse<>(HttpStatus.OK.value(), "Token refreshed successfully", Instant.now(), tokenResponse);
+                return new ObjectResponse<>(HttpStatus.OK.value()+"", "Token refreshed successfully", Instant.now(), tokenResponse);
             } else {
-                return new ObjectResponse<>(HttpStatus.BAD_REQUEST.value(), "Invalid refresh token", Instant.now());
+                throw new BadRequestAlertException(MessageCode.MSG1006);
             }
         } catch (Exception ex) {
-            return new ObjectResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error refreshing token: " + ex.getMessage(), Instant.now());
+            throw new InternalServerErrorException(MessageCode.MSG1003);
         }
     }
 }

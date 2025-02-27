@@ -5,31 +5,31 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ObjectResponse<T> {
+public class ObjectResponse<T, U> {
 
-    private int code;
+    private String code;
     private String message;
-    private Instant timestamp;
+    private U timestamp;
     private T data;
 
-    public ObjectResponse(int code, String message, Instant timestamp, T data) {
+    public ObjectResponse(String code, String message, U timestamp, T data) {
         this.data = data;
         this.message = message;
         this.timestamp = timestamp;
         this.code = code;
     }
 
-    public ObjectResponse(int code, String message, Instant timestamp) {
+    public ObjectResponse(String code, String message, U timestamp) {
         this.code = code;
         this.message = message;
         this.timestamp = timestamp;
     }
 
-    public int getCode() {
+    public String getCode() {
         return code;
     }
 
-    public void setCode(int code) {
+    public void setCode(String code) {
         this.code = code;
     }
 
@@ -41,11 +41,11 @@ public class ObjectResponse<T> {
         this.message = message;
     }
 
-    public Instant getTimestamp() {
+    public U getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Instant timestamp) {
+    public void setTimestamp(U timestamp) {
         this.timestamp = timestamp;
     }
 

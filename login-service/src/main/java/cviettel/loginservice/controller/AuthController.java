@@ -34,7 +34,7 @@ public class AuthController {
     private KeycloakUserService keycloakUserService;
 
     @PostMapping("/new-user")
-    public ObjectResponse<String> addNewUser(@RequestBody User userInfo) {
+    public ObjectResponse<String, Instant> addNewUser(@RequestBody User userInfo) {
 
         // Đăng ký người dùng trên Keycloak
         return keycloakUserService.registerUser(userInfo);
@@ -42,39 +42,39 @@ public class AuthController {
 
     @GetMapping("/users/user-profile") // have to user plural noun for the endpoint
     @PreAuthorize("hasAuthority('USER')") // use "-" instead of camelCase
-    public ObjectResponse<String> userProfile() {
-        return new ObjectResponse<>(HttpStatus.OK.value(), "Welcome to User Profile", Instant.now());
+    public ObjectResponse<String, Instant> userProfile() {
+        return new ObjectResponse<>(HttpStatus.OK.value()+"", "Welcome to User Profile", Instant.now());
     }
 
     @GetMapping("/admins/admin-profile")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ObjectResponse<String> adminProfile() {
-        return new ObjectResponse<>(HttpStatus.OK.value(), "Welcome to Admin Profile", Instant.now());
+    public ObjectResponse<String, Instant> adminProfile() {
+        return new ObjectResponse<>(HttpStatus.OK.value()+"", "Welcome to Admin Profile", Instant.now());
     }
 
     @PostMapping("/login")
-    public ObjectResponse<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ObjectResponse<LoginResponse, Instant> login(@RequestBody LoginRequest loginRequest) {
         System.out.println("LoginRequest: " + loginRequest.getEmail());
         return this.authService.login(loginRequest);
     }
 
     @PostMapping("/refresh-token")
-    public ObjectResponse<LoginResponse> refreshToken(@RequestBody Map<String, String> request) {
+    public ObjectResponse<LoginResponse, Instant> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
         return this.authService.refreshToken(refreshToken);
     }
 
     // Endpoint thay đổi mật khẩu
     @PostMapping("/change-password")
-    public ObjectResponse<String> changePassword(@RequestBody ChangePasswordRequest request) {
+    public ObjectResponse<String, Instant> changePassword(@RequestBody ChangePasswordRequest request) {
         String result = keycloakUserService.changeUserPassword(request.getUsername(), request.getNewPassword());
-        return new ObjectResponse<>(HttpStatus.OK.value(), result, Instant.now());
+        return new ObjectResponse<>(HttpStatus.OK.value()+"", result, Instant.now());
     }
 
     // Endpoint xóa người dùng
     @DeleteMapping("/delete-user")
-    public ObjectResponse<String> deleteUser(@RequestBody DeleteUserRequest request) {
+    public ObjectResponse<String, Instant> deleteUser(@RequestBody DeleteUserRequest request) {
         String result = keycloakUserService.deleteUser(request.getUsername());
-        return new ObjectResponse<>(HttpStatus.OK.value(), result, Instant.now());
+        return new ObjectResponse<>(HttpStatus.OK.value()+"", result, Instant.now());
     }
 }

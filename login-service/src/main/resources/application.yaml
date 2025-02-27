@@ -30,6 +30,11 @@ spring:
     redis:
       host: localhost
       port: 6379
+  messages:
+    encoding: 'UTF-8'   # Đảm bảo mã hóa đúng
+    use-code-as-default-message: true  # Sử dụng code làm thông điệp mặc định nếu không tìm thấy thông điệp
+    basename: i18n/labels  # Đảm bảo đúng tên file (không cần đuôi .properties trong basename)
+    cache-duration: 60   # Thời gian cache (60 giây)
 security:
   authentication:
     jwt:
@@ -41,7 +46,7 @@ security:
 keycloak:
   credentials:
 #    secret: DLcSnMoS3YidzfRrAkYAxCi3wAZdkxub
-    secret: zNjTtzQqHZ3r796INQrHAogl5aaVPOlv
+    secret: sQ4kNz4tZ8MdMXeIodoR5afrIzDv0Xax
   auth-server-url: http://localhost:8080
   realm: SpringAPI
   resource: admin-cli

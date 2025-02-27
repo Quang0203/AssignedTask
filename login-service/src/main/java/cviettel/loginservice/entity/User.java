@@ -10,6 +10,7 @@ import java.time.Instant;
 @Table(name = "user", schema = "login-service")
 @NoArgsConstructor
 @AllArgsConstructor
+@Data
 @Builder
 public class User {
     @Id
@@ -48,14 +49,15 @@ public class User {
     @Column(name = "updated-at", updatable = false)
     private Instant updatedAt;
 
-    public User() {
-    }
-
     public User(String userId, String password, Instant updatedAt, String updatedBy) {
         this.userId = userId;
         this.password = password;
         this.updatedAt = updatedAt;
         this.updatedBy = updatedBy;
+    }
+
+    public User() {
+
     }
 
     public String getUserId() {
