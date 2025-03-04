@@ -13,7 +13,9 @@ import cviettel.loginservice.enums.MessageCode;
 import cviettel.loginservice.exception.handler.InternalServerErrorException;
 import cviettel.loginservice.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,8 +24,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
+@RequiredArgsConstructor
 public class KeycloakUserService {
 
     @Value("${keycloak.auth-server-url}")
@@ -41,14 +45,14 @@ public class KeycloakUserService {
     @Value("${env.password}")
     private String password;
 
+    @Value("${keycloak.credentials.secret}")
+    private String secretKey;
+
     private final PasswordEncoder encoder;
 
     private final UserRepository userRepository;
 
-    public KeycloakUserService(UserRepository userRepository, PasswordEncoder encoder) {
-        this.userRepository = userRepository;
-        this.encoder = encoder;
-    }
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public LoginResponse getToken(String username, String password) {
@@ -66,12 +70,13 @@ public class KeycloakUserService {
 
         // Bước 3: Gọi API token của Keycloak với grant_type=password
         String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
-        String requestBody = String.format("client_id=%s&username=%s&password=%s&grant_type=password", clientId, username, password);
+        String requestBody = String.format("client_id=%s&username=%s&password=%s&grant_type=password&client_secret=%s", clientId, username, password, secretKey);
         ResponseEntity<String> response = sendPostRequest(url, requestBody);
         System.out.println("Response at getToken(): " + response);
 
         if (response.getStatusCode() == HttpStatus.OK) {
             LoginResponse loginResponse = parseTokenResponse(response.getBody());
+            redisTemplate.opsForValue().set("TokenLogin", loginResponse.getAccessToken(), loginResponse.getExpiresIn(), TimeUnit.SECONDS);
             return loginResponse;
         } else {
             throw new CustomKeycloakException(Labels.getLabels(MessageCode.MSG1010.getKey()) + response.getStatusCode() + " " + response.getBody(), MessageCode.MSG1010.name(), MessageCode.MSG1010.getKey());
@@ -158,15 +163,15 @@ public class KeycloakUserService {
             userRepository.save(userInfo);
             return new ObjectResponse<>(HttpStatus.OK.toString(), "User created successfully", Instant.now());
         } else {
-            return new ObjectResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value()+"", "Failed to create user: " + response.getBody(), Instant.now());
+            return new ObjectResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value() + "", "Failed to create user: " + response.getBody(), Instant.now());
         }
     }
 
     private String getAdminAccessToken() {
         String url = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
-        String requestBody = String.format("client_id=%s&username=%s&password=%s&grant_type=password", clientId, username, password);
+        String requestBody = String.format("client_id=%s&username=%s&password=%s&grant_type=password&client_secret=%s", clientId, username, password, secretKey);
         System.out.println("Request body: " + requestBody);
-        System.out.println("URL: " + url);
+        System.out.println("URL in the getting admin access token stage: " + url);
         ResponseEntity<String> response = sendPostRequest(url, requestBody);
         if (response.getStatusCode() == HttpStatus.OK) {
             return parseTokenResponse(response.getBody()).getAccessToken();
@@ -180,6 +185,7 @@ public class KeycloakUserService {
     // Tìm userId từ username (dựa vào Admin API của Keycloak)
     public String findUserIdByUsername(String username) {
         String url = keycloakServerUrl + "/admin/realms/" + realm + "/users?username=" + username;
+        System.out.println("URL in the finding user id stage: " + url);
         String accessToken = getAdminAccessToken();
         if (accessToken == null) {
             throw new CustomKeycloakException(MessageCode.MSG1012);
@@ -228,7 +234,6 @@ public class KeycloakUserService {
             return "Failed to change password: " + response.getBody();
         }
     }
-
 
     // Xóa người dùng theo username
     public String deleteUser(String username) {
@@ -321,6 +326,7 @@ public class KeycloakUserService {
             if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
                 System.out.println("Failed to logout user sessions: " + response.getBody());
             } else {
+                redisTemplate.delete("TokenLogin");
                 System.out.println("Successfully logged out previous sessions for userId: " + userId);
             }
         } catch (HttpClientErrorException e) {

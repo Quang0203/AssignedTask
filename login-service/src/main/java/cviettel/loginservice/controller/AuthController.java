@@ -66,6 +66,7 @@ public class AuthController {
 
     // Endpoint thay đổi mật khẩu
     @PostMapping("/change-password")
+    @PreAuthorize("hasAuthority('USER')")
     public ObjectResponse<String, Instant> changePassword(@RequestBody ChangePasswordRequest request) {
         String result = keycloakUserService.changeUserPassword(request.getUsername(), request.getNewPassword());
         return new ObjectResponse<>(HttpStatus.OK.value()+"", result, Instant.now());

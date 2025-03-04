@@ -2,9 +2,15 @@ server:
   port: 8082
   servlet:
     context-path: /order
+#logging:
+#  level:
+#    org.springframework.boot.autoconfigure: DEBUG
+
 logging:
   level:
-    org.springframework.boot.autoconfigure: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.boot.autoconfigure.web: DEBUG
 spring:
   application:
     name: order-service
@@ -29,8 +35,32 @@ spring:
     redis:
       host: localhost
       port: 6379
+  messages:
+    encoding: 'UTF-8'   # Đảm bảo mã hóa đúng
+    use-code-as-default-message: true  # Sử dụng code làm thông điệp mặc định nếu không tìm thấy thông điệp
+    basename: i18n/labels  # Đảm bảo đúng tên file (không cần đuôi .properties trong basename)
+    cache-duration: 60   # Thời gian cache (60 giây)
 security:
   authentication:
     jwt:
       # This token must be encoded using Base64 and be at least 256 bits long (you can type `openssl rand -base64 64` on your command line to generate a 512 bits one)
       base64-secret: 'ajMywt0FWnZYET/u3Pm309ziD6eXRewGX+QsyHs6/Y4ascWDHAAK46ARsuUZKLcjMQxUa5mQfNTaujgm8Sg4TJh4wKGwwXBAtB2gsEm1TkZuSRo97/BEFIR5rEKefTBf41J4kcU/YndvNFJcMRXkgMoC6fvzjSVYx1fGNYxSJqO+neilVm3uBpQiuhQrhTMmrKZJYa5M9xutWfJsbQ1Tf6IQ6zlRKZqdt8edUD/mOuUwltlyC1UZCyALrcji2vFlgXu+eks6IjBkxlAT3LvwVe5Et4MoNaB+eHetIdL6epigf1nYxmLSPT3rWfQxRRmHAwSQnO+1atAubG/xQqvsTQ=='
+
+eureka:
+  client:
+    server-url:
+      defaultZone: http://localhost:8761/eureka/
+
+keycloak:
+  credentials:
+    secret: sQ4kNz4tZ8MdMXeIodoR5afrIzDv0Xax
+  auth-server-url: http://localhost:8080
+  realm: SpringAPI
+  resource: admin-cli
+  bearer-only: true
+  public-client: false
+  ssl-required: none
+  cors: true
+env:
+  username: admin
+  password: admin123
