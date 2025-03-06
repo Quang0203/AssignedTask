@@ -1,5 +1,7 @@
 package cviettel.orderservice.entity;
 
+import cviettel.orderservice.entity.common.AuditTable;
+import cviettel.orderservice.enums.Status;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +16,7 @@ import java.time.Instant;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Order {
+public class Order extends AuditTable {
 
     @Id
     @Column(name = "order_id")
@@ -27,15 +29,8 @@ public class Order {
     @Column(name = "order_details")
     private String orderDetails;
 
-    @Column(name = "created-by", updatable = false)
-    private String createdBy;
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
-    @Column(name = "created-at", updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated-by", updatable = false)
-    private String updatedBy;
-
-    @Column(name = "updated-at", updatable = false)
-    private Instant updatedAt;
 }

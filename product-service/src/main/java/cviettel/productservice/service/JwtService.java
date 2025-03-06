@@ -1,4 +1,4 @@
-package cviettel.orderservice.service;
+package cviettel.productservice.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -55,11 +55,6 @@ public class JwtService {
             return (List<String>) realmAccess.get("roles");
         }
         return List.of();
-    }
-
-    public String extractUsername(String token) {
-        Claims claims = extractAllClaims(token);
-        return claims.get("sub", String.class);
     }
 
     public String extractEmail(String token) {

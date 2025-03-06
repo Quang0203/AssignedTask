@@ -1,5 +1,6 @@
 package cviettel.orderservice.controller;
 
+import cviettel.orderservice.dto.request.NewOrderRequest;
 import cviettel.orderservice.entity.Order;
 import cviettel.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class OrderController {
 
     // Lấy danh sách đơn hàng
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<List<Order>> getOrders() {
         List<Order> orders = orderService.getAllOrders();
         return ResponseEntity.ok(orders);
@@ -27,13 +28,14 @@ public class OrderController {
     // Tạo đơn hàng mới
     @PostMapping("/new-order")
     @PreAuthorize("hasAuthority('USER')")
-    public ResponseEntity<Order> createOrder(@RequestBody Order order) {
-        Order newOrder = orderService.createOrder(order);
-        return ResponseEntity.ok(newOrder);
+    public ResponseEntity<String> createOrder(@RequestBody NewOrderRequest order) {
+//        Order newOrder = orderService.createOrder(order);
+        return ResponseEntity.ok(orderService.createOrderWithProducts(order));
     }
 
     // Cập nhật đơn hàng
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     public ResponseEntity<Order> updateOrder(@PathVariable String id, @RequestBody Order order) throws BadRequestException {
         Order updatedOrder = orderService.updateOrder(id, order);
         return ResponseEntity.ok(updatedOrder);
@@ -41,6 +43,7 @@ public class OrderController {
 
     // Xoá đơn hàng
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> deleteOrder(@PathVariable String id) {
         orderService.deleteOrder(id);
         return ResponseEntity.noContent().build();

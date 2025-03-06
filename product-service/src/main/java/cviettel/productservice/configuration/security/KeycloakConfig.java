@@ -1,25 +1,25 @@
-package cviettel.loginservice.configuration.keycloack;
+package cviettel.productservice.configuration.security;
 
-import cviettel.loginservice.configuration.jwt.TrustedHeaderAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Autowired;
+import cviettel.productservice.configuration.jwt.TrustedHeaderAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; // Nếu dùng Spring Boot 3.x, nếu không dùng @EnableGlobalMethodSecurity cho Spring Boot 2.x
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class KeycloakConfig {
 
-    @Autowired
-    private TrustedHeaderAuthenticationFilter trustedHeaderAuthenticationFilter;
+    private final TrustedHeaderAuthenticationFilter trustedHeaderAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,6 +40,6 @@ public class KeycloakConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(); // Mã hóa mật khẩu
     }
 }

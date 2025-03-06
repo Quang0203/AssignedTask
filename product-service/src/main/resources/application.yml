@@ -1,7 +1,7 @@
 server:
-  port: 8082
+  port: 8083
   servlet:
-    context-path: /order
+    context-path: /product
 #logging:
 #  level:
 #    org.springframework.boot.autoconfigure: DEBUG
@@ -13,7 +13,7 @@ logging:
     org.springframework.boot.autoconfigure.web: DEBUG
 spring:
   application:
-    name: order-service
+    name: product-service
   datasource:
     url: jdbc:postgresql://localhost:5432/trainingdb
     username: postgres
@@ -50,13 +50,6 @@ eureka:
   client:
     server-url:
       defaultZone: http://localhost:8761/eureka/
-
-feign:
-  client:
-    config:
-      product-service:
-        name: 'product-service'
-        url: http://localhost:8888/api/v1/product
 
 keycloak:
   credentials:

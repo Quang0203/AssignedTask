@@ -1,16 +1,24 @@
 package cviettel.orderservice.service.impl;
 
+import cviettel.orderservice.dto.request.NewOrderRequest;
+import cviettel.orderservice.dto.request.OrderProductRequest;
 import cviettel.orderservice.entity.Order;
+import cviettel.orderservice.enums.Status;
 import cviettel.orderservice.repository.OrderRepository;
+import cviettel.orderservice.service.JwtService;
+import cviettel.orderservice.service.OrderCacheService;
+import cviettel.orderservice.service.OrderProductService;
 import cviettel.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -18,44 +26,79 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
 
+    private final OrderProductService orderProductService;
+
+    private final OrderCacheService orderCacheService;
+
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private static final String ORDER_CACHE_KEY = "ORDER_LIST";
+    private final JwtService jwtService;
 
+    // Lấy danh sách order. Nếu chưa có trong cache, load từ DB và cache lại.
+    @Override
+    @Cacheable(value = "ordersCache", key = "'all'")
     public List<Order> getAllOrders() {
-        // Kiểm tra cache
-        List<Order> orders = (List<Order>) redisTemplate.opsForValue().get(ORDER_CACHE_KEY);
-        if(orders == null) {
-            orders = orderRepository.findAll();
-            redisTemplate.opsForValue().set(ORDER_CACHE_KEY, orders, 30, TimeUnit.MINUTES);
-        }
-        return orders;
+        return orderRepository.findAll();
     }
 
-    public Order createOrder(Order order) {
-        Order newOrder = orderRepository.save(order);
-        // Xoá cache để cập nhật danh sách mới
-        redisTemplate.delete(ORDER_CACHE_KEY);
-        return newOrder;
+    // Lấy 1 order theo id, sử dụng cache theo key là id.
+    @Override
+    @Cacheable(value = "ordersCache", key = "#id")
+    public Order getOrderById(String id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
     }
 
-    public Order updateOrder(String id, Order orderData) throws BadRequestException {
-        Optional<Order> orderFind = orderRepository.findByOrderId(id);
+    @Override
+    @Cacheable(value = "ordersCache", key = "#userId")
+    public List<Order> getAllOdersByUserId(String userId) {
+        return orderRepository.findByUserId(userId);
+    }
 
-        if(orderFind.isEmpty()) {
-            throw new BadRequestException("Order not found");
-        }
+    // Tạo mới order và cập nhật cache với key là orderId của order tạo ra.
+//    @Override
+//    @CachePut(value = "ordersCache", key = "#result.orderId")
+//    public Order createOrder(Order order) {
+//        return orderRepository.save(order);
+//    }
 
-        Order order = orderFind.get();
-
+    // Cập nhật order và đồng thời cập nhật cache.
+    @Override
+    @CachePut(value = "ordersCache", key = "#id")
+    public Order updateOrder(String id, Order orderData) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
         order.setOrderDetails(orderData.getOrderDetails());
-        Order updatedOrder = orderRepository.save(order);
-        redisTemplate.delete(ORDER_CACHE_KEY);
-        return updatedOrder;
+        order.setStatus(orderData.getStatus());
+        // Cập nhật thêm các thông tin cần thiết khác nếu có...
+        return orderRepository.save(order);
     }
 
+    // Xoá order và xoá cache tương ứng.
+    @Override
+    @CacheEvict(value = "ordersCache", key = "#id")
     public void deleteOrder(String id) {
         orderRepository.deleteById(id);
-        redisTemplate.delete(ORDER_CACHE_KEY);
+    }
+
+    @Override
+    public String createOrderWithProducts(NewOrderRequest newOrderRequest) {
+
+        String userId = jwtService.extractUsername(redisTemplate.opsForValue().get("TokenLogin").toString());
+        // Tạo mới Order
+        Order order = Order.builder()
+                .userId(userId)
+                .orderDetails(newOrderRequest.getOrderDetails())
+                .status(Status.CONFIRMED)
+                .build();
+        // Gọi phương thức tạo Order có @CachePut để tự động cache Order mới
+        order = orderCacheService.createOrder(order);
+
+        // Với mỗi sản phẩm trong request, tạo OrderProduct (với auto cache nếu sử dụng @CachePut trong service tương ứng)
+        for (OrderProductRequest opr : newOrderRequest.getOrderProducts()) {
+            orderProductService.createOrderProduct(opr, order.getOrderId());
+        }
+
+        return "Tạo đơn hàng thành công";
     }
 }
