@@ -13,4 +13,3 @@ public class AuditorAwareConfig implements AuditorAware<String> {
         return Optional.ofNullable(currentUser).orElse("system").describeConstable(); // Hoặc một giá trị mặc định khác
     }
 }
-

@@ -1,7 +1,11 @@
 package cviettel.orderservice.dto.response.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import lombok.Data;
 
+@Data
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ObjectResponse<T, U> {
 
@@ -21,37 +25,5 @@ public class ObjectResponse<T, U> {
         this.code = code;
         this.message = message;
         this.timestamp = timestamp;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public U getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(U timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public void setData(T data) {
-        this.data = data;
     }
 }

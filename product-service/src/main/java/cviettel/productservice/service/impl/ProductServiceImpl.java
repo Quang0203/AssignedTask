@@ -4,6 +4,7 @@ import cviettel.productservice.dto.request.ProductRequest;
 import cviettel.productservice.entity.Product;
 import cviettel.productservice.repository.ProductRepository;
 import cviettel.productservice.service.ProductService;
+import cviettel.productservice.util.ThreadLocalUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -20,10 +21,13 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
 
+
+
     // Lấy danh sách sản phẩm và cache kết quả.
     @Override
     @Cacheable(value = "productsCache", key = "'all'")
     public List<Product> getAllProducts() {
+//        ThreadLocalUtil.setCurrentUser();
         return productRepository.findAll();
     }
 
@@ -39,12 +43,14 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @CachePut(value = "productsCache", key = "#result.productId")
     public String createProduct(ProductRequest product) {
+        ThreadLocalUtil.setCurrentUser("Admin");
         Product newProduct = Product.builder()
                 .productName(product.getProductName())
                 .productPrice(product.getProductPrice())
                 .productDetails(product.getProductDetails())
                 .build();
         productRepository.save(newProduct);
+        ThreadLocalUtil.remove();
         return "productRepository.save(product)";
     }
 

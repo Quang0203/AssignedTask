@@ -1,8 +1,11 @@
 package cviettel.loginservice.entity;
 
+import cviettel.loginservice.entity.common.AuditTable;
 import cviettel.loginservice.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.time.Instant;
 
@@ -10,9 +13,12 @@ import java.time.Instant;
 @Table(name = "user", schema = "login-service")
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 @Builder
-public class User {
+@DynamicUpdate
+@DynamicInsert
+public class User extends AuditTable {
     @Id
     @Column(name = "user_id", nullable = false)
 //    @GeneratedValue(strategy = GenerationType.UUID)
@@ -36,16 +42,4 @@ public class User {
 
     @Column(name = "role", length = 10)
     private String role;
-
-    @Column(name = "created-by", updatable = false)
-    private String createdBy;
-
-    @Column(name = "created-at", updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated-by", updatable = false)
-    private String updatedBy;
-
-    @Column(name = "updated-at", updatable = false)
-    private Instant updatedAt;
 }

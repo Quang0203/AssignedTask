@@ -10,6 +10,8 @@ import cviettel.loginservice.exception.handler.BadRequestAlertException;
 import cviettel.loginservice.exception.handler.InternalServerErrorException;
 import cviettel.loginservice.exception.handler.UnauthorizedException;
 import cviettel.loginservice.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,12 +19,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 
+@Slf4j
 @Service
-//@RequiredArgsConstructor
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
-    private KeycloakUserService keycloakUserService;
+    private final KeycloakUserService keycloakUserService;
 
     @Override
     public ObjectResponse<LoginResponse, Instant> login(LoginRequest loginRequest) {
@@ -30,10 +32,10 @@ public class AuthServiceImpl implements AuthService {
             // Gọi KeycloakUserService để lấy token từ Keycloak
             LoginResponse tokenResponse = keycloakUserService.getToken(loginRequest.getEmail(), loginRequest.getPassword());
 
-            System.out.println("TokenResponse: " + tokenResponse);
+            log.info("TokenResponse: {}", tokenResponse);
 
             if (tokenResponse != null && tokenResponse.getAccessToken() != null) {
-                System.out.println("Token: " + tokenResponse.getAccessToken());
+                log.info("Token: {}", tokenResponse.getAccessToken());
                 return new ObjectResponse<>(HttpStatus.OK.toString(), "Login successful", Instant.now(), tokenResponse);
             } else {
                 throw new BadRequestAlertException(MessageCode.MSG1004);

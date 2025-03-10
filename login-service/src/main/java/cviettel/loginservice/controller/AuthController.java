@@ -4,6 +4,7 @@ import cviettel.loginservice.configuration.keycloack.KeycloakUserService;
 import cviettel.loginservice.dto.request.ChangePasswordRequest;
 import cviettel.loginservice.dto.request.DeleteUserRequest;
 import cviettel.loginservice.dto.request.LoginRequest;
+import cviettel.loginservice.dto.request.RegisterRequest;
 import cviettel.loginservice.dto.response.LoginResponse;
 import cviettel.loginservice.dto.response.common.ObjectResponse;
 import cviettel.loginservice.entity.User;
@@ -11,6 +12,7 @@ import cviettel.loginservice.service.AuthService;
 import cviettel.loginservice.service.UserService;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,25 +21,22 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.Map;
 
+@Slf4j
 @RestController
-//@RequiredArgsConstructor // use @RequiredArgsConstructor instead of @Autowired and add "final" to the field
+@RequiredArgsConstructor // use @RequiredArgsConstructor instead of @Autowired and add "final" to the field
 //@NoArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
 
-    @Autowired
-    private KeycloakUserService keycloakUserService;
+    private final KeycloakUserService keycloakUserService;
 
     @PostMapping("/new-user")
-    public ObjectResponse<String, Instant> addNewUser(@RequestBody User userInfo) {
-
+    public ObjectResponse<String, Instant> addNewUser(@RequestBody RegisterRequest userRegister) {
         // Đăng ký người dùng trên Keycloak
-        return keycloakUserService.registerUser(userInfo);
+        return keycloakUserService.registerUser(userRegister);
     }
 
     @GetMapping("/users/user-profile") // have to user plural noun for the endpoint
@@ -54,7 +53,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ObjectResponse<LoginResponse, Instant> login(@RequestBody LoginRequest loginRequest) {
-        System.out.println("LoginRequest: " + loginRequest.getEmail());
+        log.info("LoginRequest: {}", loginRequest.getEmail());
         return this.authService.login(loginRequest);
     }
 
@@ -68,7 +67,7 @@ public class AuthController {
     @PostMapping("/change-password")
     @PreAuthorize("hasAuthority('USER')")
     public ObjectResponse<String, Instant> changePassword(@RequestBody ChangePasswordRequest request) {
-        String result = keycloakUserService.changeUserPassword(request.getUsername(), request.getNewPassword());
+        String result = keycloakUserService.changeUserPassword(request);
         return new ObjectResponse<>(HttpStatus.OK.value()+"", result, Instant.now());
     }
 

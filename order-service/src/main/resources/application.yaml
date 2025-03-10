@@ -6,11 +6,11 @@ server:
 #  level:
 #    org.springframework.boot.autoconfigure: DEBUG
 
-logging:
-  level:
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.boot.autoconfigure.web: DEBUG
+#logging:
+#  level:
+#    org.springframework.web: DEBUG
+#    org.springframework.security: DEBUG
+#    org.springframework.boot.autoconfigure.web: DEBUG
 spring:
   application:
     name: order-service

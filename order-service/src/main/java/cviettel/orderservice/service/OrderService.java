@@ -1,6 +1,7 @@
 package cviettel.orderservice.service;
 
 import cviettel.orderservice.dto.request.NewOrderRequest;
+import cviettel.orderservice.dto.request.UpdateOrderRequest;
 import cviettel.orderservice.entity.Order;
 import org.apache.coyote.BadRequestException;
 
@@ -16,7 +17,7 @@ public interface OrderService {
 
 //    public Order createOrder(Order order);
 
-    public Order updateOrder(String id, Order orderData) throws BadRequestException;
+    public Order updateOrder(String id, UpdateOrderRequest orderData) throws BadRequestException;
 
     public void deleteOrder(String id);
 

@@ -17,6 +17,14 @@ public interface LabelKey {
     public static final String MSG_1013 = "error.get-access-token";
     public static final String MSG_1014 = "error.keycloak.user-not-found";
     public static final String MSG_1015 = "error.parse-info-user-result";
-    public static final String MSG_1016 = "error.check-activce-session";
+    public static final String MSG_1016 = "error.check-active-session";
+    public static final String MSG_1017 = "error.assigning-role";
+    public static final String MSG_1018 = "error.creating-user";
+    public static final String MSG_1019 = "error.getting-role";
+    public static final String MSG_1020 = "error.assigning-role-exception";
+    public static final String MSG_1021 = "error.old-password-incorrect";
+    public static final String MSG_1022 = "error.new-password-same-old-password";
+    public static final String MSG_1023 = "error.change-password";
+    public static final String MSG_1024 = "error.delete-user";
 }
 

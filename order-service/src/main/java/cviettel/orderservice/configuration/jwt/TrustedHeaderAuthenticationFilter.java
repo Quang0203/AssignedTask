@@ -32,13 +32,14 @@ public class TrustedHeaderAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
             try {
                 String email = jwtService.extractEmail(token);
+                String userId = jwtService.extractUsername(token);
                 // Lấy danh sách role từ token và chuyển thành GrantedAuthority
                 List<String> roles = jwtService.extractRoles(token);
                 List<SimpleGrantedAuthority> authorities = roles.stream()
                         .map(role -> new SimpleGrantedAuthority(role.toUpperCase()))
                         .collect(Collectors.toList());
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        email, null, authorities);
+                        userId, null, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception ex) {

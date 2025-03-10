@@ -58,8 +58,7 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        Claims claims = extractAllClaims(token);
-        return claims.get("sub", String.class);
+        return extractAllClaims(token).getSubject();
     }
 
     public String extractEmail(String token) {

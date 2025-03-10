@@ -40,7 +40,23 @@ public enum MessageCode {
 
     MSG1015(LabelKey.MSG_1015),
 
-    MSG1016(LabelKey.MSG_1016);
+    MSG1016(LabelKey.MSG_1016),
+
+    MSG1017(LabelKey.MSG_1017),
+
+    MSG1018(LabelKey.MSG_1018),
+
+    MSG1019(LabelKey.MSG_1019),
+
+    MSG1020(LabelKey.MSG_1020),
+
+    MSG1021(LabelKey.MSG_1021),
+
+    MSG1022(LabelKey.MSG_1022),
+
+    MSG1023(LabelKey.MSG_1023),
+
+    MSG1024(LabelKey.MSG_1024);
 
     private String key;
 

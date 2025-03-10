@@ -2,6 +2,7 @@ package cviettel.orderservice.service.impl;
 
 import cviettel.orderservice.dto.request.NewOrderRequest;
 import cviettel.orderservice.dto.request.OrderProductRequest;
+import cviettel.orderservice.dto.request.UpdateOrderRequest;
 import cviettel.orderservice.entity.Order;
 import cviettel.orderservice.enums.Status;
 import cviettel.orderservice.repository.OrderRepository;
@@ -65,7 +66,7 @@ public class OrderServiceImpl implements OrderService {
     // Cập nhật order và đồng thời cập nhật cache.
     @Override
     @CachePut(value = "ordersCache", key = "#id")
-    public Order updateOrder(String id, Order orderData) {
+    public Order updateOrder(String id, UpdateOrderRequest orderData) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
         order.setOrderDetails(orderData.getOrderDetails());

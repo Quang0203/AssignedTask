@@ -1,4 +1,4 @@
-package cviettel.orderservice.entity.common;
+package cviettel.loginservice.entity.common;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
