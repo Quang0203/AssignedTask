@@ -17,6 +17,7 @@ import cviettel.loginservice.enums.MessageCode;
 import cviettel.loginservice.exception.handler.BadRequestAlertException;
 import cviettel.loginservice.exception.handler.InternalServerErrorException;
 import cviettel.loginservice.repository.UserRepository;
+import cviettel.loginservice.service.JwtService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +60,7 @@ public class KeycloakUserService {
     private final PasswordEncoder encoder;
     private final UserRepository userRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final JwtService jwtService;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -330,15 +333,16 @@ public class KeycloakUserService {
      */
     public String changeUserPassword(ChangePasswordRequest request) {
         String oldPassword = request.getOldPassword();
-        String username = request.getUsername();
+        String email = jwtService.extractEmail(Objects.requireNonNull(redisTemplate.opsForValue().get("TokenLogin")).toString());
+        log.error("Email: {}", email);
         String newPassword = request.getNewPassword();
 
         if (oldPassword.equals(newPassword)) {
             throw new BadRequestAlertException(MessageCode.MSG1022);
         }
 
-        String userId = findUserIdByUsername(username);
-        Optional<User> userFind = userRepository.findByEmail(username);
+        String userId = findUserIdByUsername(email);
+        Optional<User> userFind = userRepository.findByEmail(email);
         if (userFind.isEmpty()) {
             throw new InternalServerErrorException(MessageCode.MSG1000);
         }

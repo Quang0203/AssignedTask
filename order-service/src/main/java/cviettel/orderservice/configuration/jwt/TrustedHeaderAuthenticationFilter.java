@@ -1,5 +1,8 @@
 package cviettel.orderservice.configuration.jwt;
 
+import cviettel.orderservice.configuration.message.Labels;
+import cviettel.orderservice.enums.MessageCode;
+import cviettel.orderservice.exception.handler.UnauthorizedException;
 import cviettel.orderservice.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -43,8 +46,7 @@ public class TrustedHeaderAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception ex) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token: " + ex.getMessage());
-                return;
+                throw new UnauthorizedException(Labels.getLabels(MessageCode.MSG1000.getKey()) + ex.getMessage(), MessageCode.MSG1000.name(), MessageCode.MSG1000.getKey());
             }
         }
         filterChain.doFilter(request, response);

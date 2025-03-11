@@ -11,9 +11,12 @@ import cviettel.orderservice.service.OrderCacheService;
 import cviettel.orderservice.service.OrderProductService;
 import cviettel.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,11 +38,23 @@ public class OrderServiceImpl implements OrderService {
 
     private final JwtService jwtService;
 
+    // Inject CacheManager để thao tác với cache theo Spring Cache abstraction
+    private final CacheManager cacheManager;
+
     // Lấy danh sách order. Nếu chưa có trong cache, load từ DB và cache lại.
     @Override
-    @Cacheable(value = "ordersCache", key = "'all'")
+    @Cacheable(value = "ordersAllCache")
     public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+        List<Order> orders = orderRepository.findAll();
+
+//        // Lấy đối tượng cache của "ordersCache"
+//        Cache cache = cacheManager.getCache("ordersCache");
+//        if (cache != null) {
+//            for (Order order : orders) {
+//                cache.put(order.getOrderId(), order);
+//            }
+//        }
+        return orders;
     }
 
     // Lấy 1 order theo id, sử dụng cache theo key là id.
@@ -66,6 +81,7 @@ public class OrderServiceImpl implements OrderService {
     // Cập nhật order và đồng thời cập nhật cache.
     @Override
     @CachePut(value = "ordersCache", key = "#id")
+    @CacheEvict(value = "ordersAllCache")
     public Order updateOrder(String id, UpdateOrderRequest orderData) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
@@ -77,7 +93,10 @@ public class OrderServiceImpl implements OrderService {
 
     // Xoá order và xoá cache tương ứng.
     @Override
-    @CacheEvict(value = "ordersCache", key = "#id")
+    @Caching(evict = {
+            @CacheEvict(value = "ordersCache", key = "#id"),
+            @CacheEvict(value = "ordersAllCache")
+    })
     public void deleteOrder(String id) {
         orderRepository.deleteById(id);
     }

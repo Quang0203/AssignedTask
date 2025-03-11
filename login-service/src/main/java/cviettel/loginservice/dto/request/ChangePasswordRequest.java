@@ -7,6 +7,5 @@ import lombok.Data;
 @Builder
 public class ChangePasswordRequest {
     private String oldPassword;
-    private String username;
     private String newPassword;
 }

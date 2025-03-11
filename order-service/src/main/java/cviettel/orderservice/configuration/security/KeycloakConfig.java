@@ -1,6 +1,7 @@
 package cviettel.orderservice.configuration.security;
 
 import cviettel.orderservice.configuration.jwt.TrustedHeaderAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -25,6 +26,14 @@ public class KeycloakConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF cho API stateless
                 .addFilterBefore(trustedHeaderAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        // Khi người dùng đã đăng nhập nhưng không có quyền truy cập
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN); // HTTP 403
+                            response.getWriter().write("{\"error\": \"Access Denied: " + accessDeniedException.getMessage() + "\"}");
+                        })
+                )
                 .authorizeHttpRequests(auth -> auth
                         // Tuỳ bạn có endpoint public nào không
                         .requestMatchers("/login", "/new-user", "/refresh-token", "/delete-user").permitAll()

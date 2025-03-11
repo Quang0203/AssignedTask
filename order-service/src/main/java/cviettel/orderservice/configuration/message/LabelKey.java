@@ -1,8 +1,8 @@
 package cviettel.orderservice.configuration.message;
 
 public interface LabelKey {
-    public static final String MSG_1000 = "error.repo.user-not-found";
-    public static final String MSG_1001 = "error.exceeded-refresh-token";
+    public static final String MSG_1000 = "error.invalid-token";
+    public static final String MSG_1001 = "error.access-denied";
     public static final String MSG_1002 = "error.login-session-not-found";
     public static final String MSG_1003 = "error.refreshing-unknown-token";
     public static final String MSG_1004 = "error.invalid-credentials";
