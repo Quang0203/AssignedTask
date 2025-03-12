@@ -1,8 +1,8 @@
 package cviettel.productservice.exception;
 
-import cviettel.orderservice.configuration.message.Labels;
-import cviettel.orderservice.constants.ApiConstants;
-import cviettel.orderservice.enums.MessageCode;
+import cviettel.productservice.configuration.message.Labels;
+import cviettel.productservice.constants.ApiConstants;
+import cviettel.productservice.enums.MessageCode;
 import lombok.Getter;
 import org.zalando.problem.AbstractThrowableProblem;
 import org.zalando.problem.Status;

@@ -444,4 +444,23 @@ public class KeycloakUserService {
             throw new CustomKeycloakException(MessageCode.MSG1015);
         }
     }
+
+    /**
+     * Validates if the given password meets the strength criteria: <br/>
+     * - Minimum 8 characters <br/>
+     * - Maximum 20 characters <br/>
+     * - Contains at least one uppercase letter<br/>
+     * - Contains at least one lowercase letter<br/>
+     * - Contains at least one digit
+     *
+     * @param password the password to validate.
+     * @return {@code true} if the password meets the criteria, {@code false} otherwise.
+     */
+    private boolean isStrongPassword(String password) {
+        return password.length() >= 8 &&
+                password.length() <= 20 &&
+                password.matches(".*[A-Z].*") &&
+                password.matches(".*[a-z].*") &&
+                password.matches(".*\\d.*");
+    }
 }

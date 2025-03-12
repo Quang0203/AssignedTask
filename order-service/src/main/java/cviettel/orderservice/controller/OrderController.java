@@ -29,6 +29,21 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<Order>> getOrderByUserId(@PathVariable String userId) {
+        List<Order> orders = orderService.getAllOdersByUserId(userId);
+        return ResponseEntity.ok(orders);
+    }
+
+    // Lấy 1 đơn hàng theo id
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
+    public ResponseEntity<Order> getOrderById(@PathVariable String id) {
+        Order order = orderService.getOrderById(id);
+        return ResponseEntity.ok(order);
+    }
+
     // Tạo đơn hàng mới
     @PostMapping("/new-order")
     @PreAuthorize("hasAuthority('USER')")

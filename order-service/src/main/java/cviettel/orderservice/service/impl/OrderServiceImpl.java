@@ -4,7 +4,10 @@ import cviettel.orderservice.dto.request.NewOrderRequest;
 import cviettel.orderservice.dto.request.OrderProductRequest;
 import cviettel.orderservice.dto.request.UpdateOrderRequest;
 import cviettel.orderservice.entity.Order;
+import cviettel.orderservice.enums.MessageCode;
 import cviettel.orderservice.enums.Status;
+import cviettel.orderservice.exception.handler.BadRequestAlertException;
+import cviettel.orderservice.exception.handler.NotFoundAlertException;
 import cviettel.orderservice.repository.OrderRepository;
 import cviettel.orderservice.service.JwtService;
 import cviettel.orderservice.service.OrderCacheService;
@@ -46,14 +49,9 @@ public class OrderServiceImpl implements OrderService {
     @Cacheable(value = "ordersAllCache")
     public List<Order> getAllOrders() {
         List<Order> orders = orderRepository.findAll();
-
-//        // Lấy đối tượng cache của "ordersCache"
-//        Cache cache = cacheManager.getCache("ordersCache");
-//        if (cache != null) {
-//            for (Order order : orders) {
-//                cache.put(order.getOrderId(), order);
-//            }
-//        }
+        if (orders.isEmpty()) {
+            throw new NotFoundAlertException(MessageCode.MSG1002);
+        }
         return orders;
     }
 
@@ -61,14 +59,24 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Cacheable(value = "ordersCache", key = "#id")
     public Order getOrderById(String id) {
+        if (id == null || id.isBlank()) {
+            throw new BadRequestAlertException(MessageCode.MSG1003);
+        }
         return orderRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new NotFoundAlertException(MessageCode.MSG1004));
     }
 
     @Override
     @Cacheable(value = "ordersCache", key = "#userId")
     public List<Order> getAllOdersByUserId(String userId) {
-        return orderRepository.findByUserId(userId);
+        if (userId == null || userId.isBlank()) {
+            throw new BadRequestAlertException(MessageCode.MSG1005);
+        }
+        List<Order> orders = orderRepository.findByUserId(userId);
+        if (orders.isEmpty()) {
+            throw new NotFoundAlertException(MessageCode.MSG1002);
+        }
+        return orders;
     }
 
     // Tạo mới order và cập nhật cache với key là orderId của order tạo ra.
@@ -83,9 +91,31 @@ public class OrderServiceImpl implements OrderService {
     @CachePut(value = "ordersCache", key = "#id")
     @CacheEvict(value = "ordersAllCache")
     public Order updateOrder(String id, UpdateOrderRequest orderData) {
+
+        if (id.isBlank()) {
+            throw new BadRequestAlertException(MessageCode.MSG1003);
+        }
+        if (orderData == null) {
+            throw new BadRequestAlertException(MessageCode.MSG1006);
+        }
+
+        if (orderData.getOrderProducts() == null || orderData.getOrderProducts().isEmpty()) {
+            throw new BadRequestAlertException(MessageCode.MSG1007);
+        }
+
+        // Validate từng sản phẩm trong request
+        validateOrderProduct(orderData.getOrderProducts());
+
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
-        order.setOrderDetails(orderData.getOrderDetails());
+                .orElseThrow(() -> new NotFoundAlertException(MessageCode.MSG1004));
+        // Optionally clean và validate orderDetails
+        if (orderData.getOrderDetails() != null) {
+            order.setOrderDetails(orderData.getOrderDetails().trim());
+        }
+        // Validate và cập nhật trạng thái nếu cần thiết
+        if (orderData.getStatus() == null) {
+            throw new BadRequestAlertException(MessageCode.MSG1008);
+        }
         order.setStatus(orderData.getStatus());
         // Cập nhật thêm các thông tin cần thiết khác nếu có...
         return orderRepository.save(order);
@@ -98,11 +128,28 @@ public class OrderServiceImpl implements OrderService {
             @CacheEvict(value = "ordersAllCache")
     })
     public void deleteOrder(String id) {
+        if(id.isBlank()) {
+            throw new BadRequestAlertException(MessageCode.MSG1003);
+        }
+        if (!orderRepository.existsById(id)) {
+            throw new NotFoundAlertException(MessageCode.MSG1004);
+        }
         orderRepository.deleteById(id);
     }
 
     @Override
     public String createOrderWithProducts(NewOrderRequest newOrderRequest) {
+
+        // Validate request tổng
+        if (newOrderRequest == null) {
+            throw new BadRequestAlertException(MessageCode.MSG1006);
+        }
+        if (newOrderRequest.getOrderProducts() == null || newOrderRequest.getOrderProducts().isEmpty()) {
+            throw new BadRequestAlertException(MessageCode.MSG1007);
+        }
+
+        // Validate từng sản phẩm trong request
+        validateOrderProduct(newOrderRequest.getOrderProducts());
 
         String userId = jwtService.extractUsername(redisTemplate.opsForValue().get("TokenLogin").toString());
         // Tạo mới Order
@@ -120,5 +167,16 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return "Tạo đơn hàng thành công";
+    }
+
+    private void validateOrderProduct(List<OrderProductRequest> orderProducts) {
+        for (OrderProductRequest opr : orderProducts) {
+            if (opr.getProductId() == null || opr.getProductId().isBlank()) {
+                throw new BadRequestAlertException(MessageCode.MSG1009);
+            }
+            if (opr.getQuantity() <= 0) {
+                throw new BadRequestAlertException(MessageCode.MSG1010);
+            }
+        }
     }
 }
