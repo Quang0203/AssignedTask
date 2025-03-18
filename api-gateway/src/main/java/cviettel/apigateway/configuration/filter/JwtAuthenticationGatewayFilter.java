@@ -28,21 +28,25 @@ public class JwtAuthenticationGatewayFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         // Lấy path
         String path = exchange.getRequest().getURI().getPath();
+        log.info("Request path: {}", path);
 
         // Nếu path là /api/v1/auth/login thì bỏ qua bước kiểm tra token
         if (path.startsWith("/api/v1/auth/login")
-                || path.startsWith("/api/v1/auth/new-user")
+                || path.startsWith("/api/v1/auth/save-token")
                 || path.startsWith("/api/v1/auth/refresh-token")) {
             return chain.filter(exchange);
         }
+        log.info("debug1");
 
         // Ngược lại, kiểm tra token
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        log.info("debug2");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return unauthorizedResponse(exchange, "Missing or invalid Authorization header");
         }
 
         String token = authHeader.substring(7);
+        log.info("token: {}", token);
         try {
             if (!jwtService.validateToken(token)) {
                 return unauthorizedResponse(exchange, "Token expired");

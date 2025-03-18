@@ -15,7 +15,7 @@ public class GatewaySecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/api/v1/auth/login").permitAll()  // cho phép /login không cần token
+                        .pathMatchers("/api/v1/auth/login", "api/v1/auth/save-token").permitAll()  // cho phép /login không cần token
                         .anyExchange().permitAll()                   // các endpoint khác yêu cầu token
                 );
 

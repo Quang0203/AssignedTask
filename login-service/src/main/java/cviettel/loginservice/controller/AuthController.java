@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -76,5 +77,15 @@ public class AuthController {
     public ObjectResponse<String, Instant> deleteUser(@RequestBody DeleteUserRequest request) {
         String result = keycloakUserService.deleteUser(request.getUsername());
         return new ObjectResponse<>(HttpStatus.OK.value()+"", result, Instant.now());
+    }
+
+    /**
+     * Endpoint để lưu token vào Redis.
+     * FE sẽ gọi endpoint này sau khi nhận được token từ Keycloak.
+     */
+    @PostMapping("/save-token")
+    public ResponseEntity<String> saveToken(@RequestBody LoginResponse loginResponse) {
+        keycloakUserService.saveToken(loginResponse);
+        return ResponseEntity.ok("Token saved successfully");
     }
 }

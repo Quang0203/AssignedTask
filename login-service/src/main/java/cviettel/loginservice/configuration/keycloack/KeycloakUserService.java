@@ -57,6 +57,8 @@ public class KeycloakUserService {
     @Value("${keycloak.credentials.secret}")
     private String secretKey;
 
+    private static final String KEY_SAVE_TOKEN = "TokenLogin";
+
     private final PasswordEncoder encoder;
     private final UserRepository userRepository;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -87,11 +89,15 @@ public class KeycloakUserService {
 
         if (response.getStatusCode() == HttpStatus.OK) {
             LoginResponse loginResponse = parseTokenResponse(response.getBody());
-            redisTemplate.opsForValue().set("TokenLogin", loginResponse.getAccessToken(), loginResponse.getExpiresIn(), TimeUnit.SECONDS);
+            saveToken(loginResponse);
             return loginResponse;
         } else {
             throw new CustomKeycloakException(Labels.getLabels(MessageCode.MSG1010.getKey()) + response.getStatusCode() + " " + response.getBody(), MessageCode.MSG1010.name(), MessageCode.MSG1010.getKey());
         }
+    }
+
+    public void saveToken(LoginResponse loginResponse) {
+        redisTemplate.opsForValue().set(KEY_SAVE_TOKEN, loginResponse.getAccessToken(), loginResponse.getExpiresIn(), TimeUnit.SECONDS);
     }
 
     @Transactional
@@ -333,7 +339,7 @@ public class KeycloakUserService {
      */
     public String changeUserPassword(ChangePasswordRequest request) {
         String oldPassword = request.getOldPassword();
-        String email = jwtService.extractEmail(Objects.requireNonNull(redisTemplate.opsForValue().get("TokenLogin")).toString());
+        String email = jwtService.extractEmail(Objects.requireNonNull(redisTemplate.opsForValue().get(KEY_SAVE_TOKEN)).toString());
         log.error("Email: {}", email);
         String newPassword = request.getNewPassword();
 
@@ -419,7 +425,7 @@ public class KeycloakUserService {
             if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
                 log.info("Failed to logout user sessions: {}", response.getBody());
             } else {
-                redisTemplate.delete("TokenLogin");
+                redisTemplate.delete(KEY_SAVE_TOKEN);
                 log.info("Successfully logged out previous sessions for userId: {}", userId);
             }
         } catch (HttpClientErrorException e) {
