@@ -17,7 +17,7 @@ public class ProductController {
     private final ProductService productService;
 
     // Lấy danh sách tất cả sản phẩm
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<Product>> getAllProducts() {
         List<Product> products = productService.getAllProducts();
         return ResponseEntity.ok(products);

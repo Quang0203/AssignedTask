@@ -30,7 +30,7 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     public ResponseEntity<List<Order>> getOrderByUserId(@PathVariable String userId) {
         List<Order> orders = orderService.getAllOdersByUserId(userId);
         return ResponseEntity.ok(orders);

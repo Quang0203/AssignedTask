@@ -28,8 +28,6 @@ import java.util.Map;
 //@NoArgsConstructor
 public class AuthController {
 
-    private final UserService userService;
-
     private final AuthService authService;
 
     private final KeycloakUserService keycloakUserService;
@@ -38,18 +36,6 @@ public class AuthController {
     public ObjectResponse<String, Instant> addNewUser(@RequestBody RegisterRequest userRegister) {
         // Đăng ký người dùng trên Keycloak
         return keycloakUserService.registerUser(userRegister);
-    }
-
-    @GetMapping("/users/user-profile") // have to user plural noun for the endpoint
-    @PreAuthorize("hasAuthority('USER')") // use "-" instead of camelCase
-    public ObjectResponse<String, Instant> userProfile() {
-        return new ObjectResponse<>(HttpStatus.OK.value()+"", "Welcome to User Profile", Instant.now());
-    }
-
-    @GetMapping("/admins/admin-profile")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    public ObjectResponse<String, Instant> adminProfile() {
-        return new ObjectResponse<>(HttpStatus.OK.value()+"", "Welcome to Admin Profile", Instant.now());
     }
 
     @PostMapping("/login")
