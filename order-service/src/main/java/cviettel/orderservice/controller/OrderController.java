@@ -22,7 +22,7 @@ public class OrderController {
     private final OrderService orderService;
 
     // Lấy danh sách đơn hàng
-    @GetMapping
+    @GetMapping("/all")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<List<Order>> getOrders() {
         List<Order> orders = orderService.getAllOrders();
