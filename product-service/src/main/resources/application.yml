@@ -11,6 +11,11 @@ server:
 #    org.springframework.web: DEBUG
 #    org.springframework.security: DEBUG
 #    org.springframework.boot.autoconfigure.web: DEBUG
+# Cấu hình cho API Grok
+xai:
+  api:
+    key: 'xai-azjBjaLang0qJ20so4v9ic3hUzG8D93j2xIjfdnqZX9nfAVfbplOLT2qgrOucRCrPZVcHIzVv5Mrtza8'
+    url: 'https://api.x.ai/v1'
 spring:
   application:
     name: product-service
