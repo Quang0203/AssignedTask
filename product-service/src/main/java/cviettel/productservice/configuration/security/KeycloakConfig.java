@@ -31,8 +31,13 @@ public class KeycloakConfig {
                         .requestMatchers("/login", "/new-user", "/refresh-token", "/delete-user").permitAll()
                         .anyRequest().authenticated()
                 )
+//                .sessionManagement(sess -> sess
+//                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+//                );
                 .sessionManagement(sess -> sess
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        // Để bảo vệ session, bạn có thể thêm migrateSession
+                        .sessionFixation().migrateSession()
                 );
 
         return http.build();

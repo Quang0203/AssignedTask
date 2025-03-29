@@ -71,3 +71,10 @@ keycloak:
 env:
   username: admin
   password: admin123
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html

@@ -36,7 +36,7 @@ public class KeycloakConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Tuỳ bạn có endpoint public nào không
-                        .requestMatchers("/login", "/new-user", "/refresh-token", "/delete-user").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/order/v3/api-docs/**", "/swagger-ui.html", "/login", "/new-user", "/refresh-token", "/delete-user").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess

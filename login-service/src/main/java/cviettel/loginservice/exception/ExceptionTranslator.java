@@ -51,6 +51,11 @@ public class ExceptionTranslator implements ProblemHandling {
         return new ObjectResponse<>(ex.getParameters().get(ERROR_CODE_KEY).toString(), ex.getMessage(), Instant.now());
     }
 
+    @ExceptionHandler(Throwable.class)
+    public ObjectResponse<String, Instant> handleInternalServerErrorException(Throwable ex) {
+        return new ObjectResponse<>(ex.getMessage(), ex.getMessage(), Instant.now());
+    }
+
     /**
      * Xử lý UnauthorizedException và
      * trả về một ObjectResponse với mã status HTTP 401 (Unauthorized).

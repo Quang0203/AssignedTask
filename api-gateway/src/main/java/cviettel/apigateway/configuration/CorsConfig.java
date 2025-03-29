@@ -15,7 +15,7 @@ public class CorsConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList("http://localhost:4200")); // Chỉ cho phép Frontend Angular
+        config.setAllowedOrigins(Arrays.asList("http://localhost:4200", "http://localhost:8888")); // Chỉ cho phép Frontend Angular
         config.setAllowedMethods(Arrays.asList(
                 HttpMethod.GET.name(),
                 HttpMethod.POST.name(),

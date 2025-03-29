@@ -33,7 +33,10 @@ public class JwtAuthenticationGatewayFilter implements GlobalFilter, Ordered {
         // Nếu path là /api/v1/auth/login thì bỏ qua bước kiểm tra token
         if (path.startsWith("/api/v1/auth/login")
                 || path.startsWith("/api/v1/auth/save-token")
-                || path.startsWith("/api/v1/auth/refresh-token")) {
+                || path.startsWith("/api/v1/auth/refresh-token")
+                || path.startsWith("/api/v1/auth/swagger-ui/index.html")
+                || path.startsWith("/api/v1/auth/v3/api-docs")
+                || path.startsWith("/api/v1/order/swagger-ui/index.html")) {
             return chain.filter(exchange);
         }
         log.info("debug1");

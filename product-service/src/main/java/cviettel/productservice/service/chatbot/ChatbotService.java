@@ -1,12 +1,15 @@
 package cviettel.productservice.service.chatbot;
 
-import cviettel.productservice.repository.ProductRepository;
 import cviettel.productservice.entity.Product;
+import cviettel.productservice.repository.ProductRepository;
+import cviettel.productservice.util.ChatSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ChatbotService {
 
@@ -18,18 +21,14 @@ public class ChatbotService {
         this.productRepository = productRepository;
     }
 
-    public String handleChat(String question) {
-        // Bước 1: Gửi câu hỏi và danh sách field cho API để phân tích tiêu chí truy vấn liên quan đến sản phẩm.
-        List<String> productFields = Arrays.asList("productName", "productPrice", "productDetails");
-        // API x.ai sẽ trả về ví dụ: {"productName": "Laptop", "productPrice": "1500", "productDetails": "Mạnh mẽ, nhẹ"}
-        Map<String, Object> criteria = grokQaService.analyzeQuery(question, productFields);
+    public String handleChat(String question, ChatSession chatSession) {
+        // Thêm câu hỏi của user vào phiên chat
+        chatSession.addMessage("user", question);
 
-        // Nếu bạn muốn áp dụng tiêu chí từ criteria để lọc sản phẩm, có thể thực hiện tại đây.
-        // Ví dụ: Lọc theo productName chứa một từ khóa nào đó.
-        // Ở đây, ví dụ đơn giản: lấy tất cả sản phẩm
+        // Lấy dữ liệu sản phẩm từ DB (ở đây đơn giản lấy tất cả sản phẩm)
         List<Product> products = productRepository.findAll();
 
-        // Chuyển đổi danh sách sản phẩm thành danh sách Map để gửi cho API x.ai
+        // Chuyển dữ liệu sản phẩm thành danh sách Map
         List<Map<String, Object>> productData = products.stream().map(product -> {
             Map<String, Object> map = new HashMap<>();
             map.put("productName", product.getProductName());
@@ -38,7 +37,20 @@ public class ChatbotService {
             return map;
         }).collect(Collectors.toList());
 
-        // Bước 2: Gửi câu hỏi và dữ liệu sản phẩm cho API x.ai để tổng hợp câu trả lời cuối cùng
-        return grokQaService.assembleAnswer(question, productData);
+        // Tạo một message hệ thống chứa thông tin sản phẩm (có thể tùy chỉnh theo yêu cầu)
+        String productsInfo = "Dữ liệu sản phẩm: " + productData.toString();
+        chatSession.addMessage("system", productsInfo);
+
+        // Gọi API x.ai, gửi toàn bộ lịch sử hội thoại để mô hình có thể hiểu ngữ cảnh
+        String answer = grokQaService.assembleAnswerWithHistory(chatSession.getMessages());
+
+        log.info("Assistant answer: {}", answer);
+
+        // Thêm câu trả lời của assistant vào phiên chat
+        chatSession.addMessage("assistant", answer);
+
+        log.info("ChatSession: {}", chatSession.getMessages());
+
+        return answer;
     }
 }

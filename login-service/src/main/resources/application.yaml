@@ -67,3 +67,19 @@ eureka:
   client:
     server-url:
       defaultZone: http://localhost:8761/eureka/
+
+#openapi:
+#  service:
+#    api-docs: api-service
+#    server: http://localhost:8081
+#    title: Login Service API DOCS
+#    version: 1.0.0
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    url: /v3/api-docs
+#    config-url: /v3/api-docs/swagger-config
+    path: /swagger-ui.html
